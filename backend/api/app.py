@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import os
 import sys
 import pandas as pd
+import logging
 
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -11,9 +12,14 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from ml_models.clustering import TouristSegmentation
 from ml_models.prediction import CongestionPredictor
 from ml_models.esi_calculator import ESICalculator
+from utils.realtime_fetcher import RealTimeDataFetcher, get_realtime_data_with_fallback
 
 # Load environment variables
 load_dotenv()
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
@@ -37,6 +43,29 @@ print("="*70)
 clustering_model = TouristSegmentation()
 prediction_model = CongestionPredictor()
 esi_calculator = ESICalculator()
+
+# Initialize Real-Time Data Fetcher
+print("\n📡 Initializing Real-Time Data Fetcher...")
+realtime_fetcher = RealTimeDataFetcher()
+
+# Check if API keys are configured
+api_keys = {
+    'GOOGLE_PLACES_API_KEY': os.getenv('GOOGLE_PLACES_API_KEY'),
+    'TOMTOM_API_KEY': os.getenv('TOMTOM_API_KEY'),
+    'OPENWEATHER_API_KEY': os.getenv('OPENWEATHER_API_KEY'),
+    'TWITTER_BEARER_TOKEN': os.getenv('TWITTER_BEARER_TOKEN')
+}
+
+configured_apis = [k for k, v in api_keys.items() if v]
+if configured_apis:
+    print(f"  ✅ Real-time APIs configured: {', '.join(configured_apis)}")
+else:
+    print("  ⚠️  No real-time APIs configured - will use synthetic data fallback")
+    print("  💡 Set these env vars to enable real-time data:")
+    print("     - GOOGLE_PLACES_API_KEY")
+    print("     - TOMTOM_API_KEY")
+    print("     - OPENWEATHER_API_KEY")
+    print("     - TWITTER_BEARER_TOKEN")
 
 # Try to load pre-trained models
 models_loaded = False
@@ -136,17 +165,24 @@ def home():
         'status': 'healthy',
         'message': 'Smart Tourism Backend API',
         'version': '1.0.0',
-        'endpoints': [
-            '/api/health',
-            '/api/kpis',
-            '/api/congestion/weekly',
-            '/api/seasonal',
-            '/api/clustering/segments',
-            '/api/esi/current',
-            '/api/recommendations',
-            '/api/alerts',
-            '/api/gis/zones'
-        ]
+        'endpoints': {
+            'health': '/api/health',
+            'realtime': {
+                'all_locations': '/api/realtime/locations',
+                'single_location': '/api/realtime/location/<location_name>',
+                'api_status': '/api/realtime/status'
+            },
+            'analytics': {
+                'kpis': '/api/kpis',
+                'weekly_congestion': '/api/congestion/weekly',
+                'seasonal': '/api/seasonal',
+                'clustering': '/api/clustering/segments',
+                'esi': '/api/esi/current',
+                'recommendations': '/api/recommendations',
+                'alerts': '/api/alerts',
+                'zones': '/api/gis/zones'
+            }
+        }
     })
 
 @app.route('/api/health', methods=['GET'])
@@ -157,6 +193,115 @@ def health_check():
         'message': 'Backend is running!',
         'models_loaded': models_loaded
     })
+
+@app.route('/api/realtime/locations', methods=['GET'])
+def get_realtime_locations():
+    """Fetch real-time data for all tourist locations"""
+    try:
+        logger.info("📡 Fetching real-time location data...")
+        
+        # Check if we should use real-time APIs or fallback
+        use_real_api = request.args.get('real_api', 'true').lower() == 'true'
+        
+        if use_real_api and any([os.getenv('GOOGLE_PLACES_API_KEY'), 
+                                 os.getenv('TOMTOM_API_KEY'),
+                                 os.getenv('OPENWEATHER_API_KEY')]):
+            # Fetch from real APIs
+            df = realtime_fetcher.fetch_all_locations_data()
+        else:
+            # Use fallback synthetic data
+            df = get_realtime_data_with_fallback()
+        
+        locations = df.to_dict(orient='records')
+        
+        return jsonify({
+            'status': 'success',
+            'data_source': 'real-time APIs' if use_real_api else 'synthetic',
+            'timestamp': pd.Timestamp.now().isoformat(),
+            'locations': locations,
+            'count': len(locations)
+        })
+    except Exception as e:
+        logger.error(f"Error fetching real-time locations: {e}")
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        }), 500
+
+@app.route('/api/realtime/location/<location_name>', methods=['GET'])
+def get_realtime_location(location_name):
+    """Fetch real-time data for a specific location"""
+    try:
+        logger.info(f"📡 Fetching real-time data for {location_name}...")
+        
+        if location_name in realtime_fetcher.locations:
+            loc_info = realtime_fetcher.locations[location_name]
+            lat, lon = loc_info['lat'], loc_info['lon']
+            
+            data = {
+                'location': location_name,
+                'latitude': lat,
+                'longitude': lon,
+                'type': loc_info['type'],
+                'timestamp': pd.Timestamp.now().isoformat()
+            }
+            
+            # Fetch various data sources
+            weather = realtime_fetcher.get_weather_data(lat, lon)
+            if weather:
+                data['weather'] = weather
+            
+            places = realtime_fetcher.get_google_places_data(location_name, lat, lon)
+            if places:
+                data['places_info'] = places
+            
+            traffic = realtime_fetcher.get_tomtom_traffic_data(lat, lon)
+            if traffic:
+                data['traffic'] = traffic
+            
+            twitter = realtime_fetcher.get_twitter_mentions(location_name)
+            if twitter:
+                data['social_media'] = twitter
+            
+            return jsonify({
+                'status': 'success',
+                'data': data
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'error': f'Location {location_name} not found'
+            }), 404
+    except Exception as e:
+        logger.error(f"Error fetching location data: {e}")
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        }), 500
+
+@app.route('/api/realtime/status', methods=['GET'])
+def get_realtime_status():
+    """Check which real-time APIs are configured and working"""
+    try:
+        status = {
+            'google_places': bool(os.getenv('GOOGLE_PLACES_API_KEY')),
+            'tomtom': bool(os.getenv('TOMTOM_API_KEY')),
+            'openweather': bool(os.getenv('OPENWEATHER_API_KEY')),
+            'twitter': bool(os.getenv('TWITTER_BEARER_TOKEN'))
+        }
+        
+        return jsonify({
+            'status': 'success',
+            'apis_configured': status,
+            'apis_enabled': sum(status.values()),
+            'total_apis': len(status),
+            'message': 'All real-time APIs configured!' if all(status.values()) else 'Some APIs not configured'
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        }), 500
 
 @app.route('/api/kpis', methods=['GET'])
 def get_kpis():
