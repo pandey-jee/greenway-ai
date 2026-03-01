@@ -544,7 +544,53 @@ def get_gis_zones():
     }
     
     # Return destinations for the requested country
-    destinations = all_destinations.get(country_code, all_destinations['IN'])
+    destinations = all_destinations.get(country_code, all_destinations['IN']).copy()
+    
+    # For India, fetch REAL traffic data from TomTom
+    if country_code == 'IN':
+        try:
+            # Fetch real-time data for all Indian locations
+            realtime_df = realtime_fetcher.fetch_all_locations_data()
+            
+            if realtime_df is not None and len(realtime_df) > 0:
+                # Create a mapping of location names to their real-time data
+                realtime_map = {}
+                for idx, row in realtime_df.iterrows():
+                    location_name = row.get('location', '')
+                    if location_name:
+                        realtime_map[location_name] = row
+                
+                # Update destinations with real traffic congestion data from TomTom
+                for dest in destinations:
+                    location_name = dest['name']
+                    if location_name in realtime_map:
+                        traffic_data = realtime_map[location_name]
+                        # Use TomTom congestion level as density percentage
+                        congestion = traffic_data.get('traffic_congestion_level', 0)
+                        dest['density'] = int(congestion)
+                        
+                        # Determine status based on congestion level
+                        if congestion >= 85:
+                            dest['status'] = 'critical'
+                        elif congestion >= 70:
+                            dest['status'] = 'high'
+                        elif congestion >= 50:
+                            dest['status'] = 'moderate'
+                        else:
+                            dest['status'] = 'low'
+                        
+                        # Add real-time weather info
+                        dest['weather'] = {
+                            'temperature': traffic_data.get('weather_temperature', 0),
+                            'condition': traffic_data.get('weather_condition', 'Unknown'),
+                            'humidity': traffic_data.get('weather_humidity', 0)
+                        }
+                        dest['traffic_speed'] = traffic_data.get('traffic_speed', 0)
+        except Exception as e:
+            logging.error(f"Error fetching real-time data for GIS zones: {e}")
+            # Fall back to hardcoded data if real-time fetch fails
+            pass
+    
     return jsonify(destinations)
 
 @app.route('/api/booking/check', methods=['POST'])
