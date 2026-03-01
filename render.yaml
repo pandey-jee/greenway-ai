@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: greenway-ai-backend
+    root: ./backend
+    runtime: python
+    pythonVersion: 3.9
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python api/app.py"
+    envVars:
+      - key: FLASK_ENV
+        scope: build
+        value: production
+      - key: FLASK_ENV
+        scope: runtime
+        value: production
+      - key: CORS_ORIGINS
+        scope: runtime
+        value: https://greenway-ai.vercel.app,http://localhost:8080
+      - key: PYTHONUNBUFFERED
+        scope: runtime
+        value: "true"

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Globe background -->
+  <circle cx="50" cy="50" r="45" fill="url(#grad)" />
+  
+  <!-- Latitude/Longitude lines -->
+  <circle cx="50" cy="50" r="35" fill="none" stroke="white" stroke-width="1.5" opacity="0.6"/>
+  <ellipse cx="50" cy="50" rx="35" ry="15" fill="none" stroke="white" stroke-width="1.5" opacity="0.6"/>
+  <ellipse cx="50" cy="50" rx="15" ry="35" fill="none" stroke="white" stroke-width="1.5" opacity="0.6"/>
+  <line x1="15" y1="50" x2="85" y2="50" stroke="white" stroke-width="1.5" opacity="0.6"/>
+  <line x1="50" y1="15" x2="50" y2="85" stroke="white" stroke-width="1.5" opacity="0.6"/>
+  
+  <!-- Green leaf accent -->
+  <path d="M 60 35 Q 70 35 70 45 Q 70 52 65 55 L 60 50 L 55 55 Q 50 52 50 45 Q 50 35 60 35" 
+        fill="#86efac" opacity="0.9"/>
+  
+  <!-- Pin marker -->
+  <path d="M 50 30 C 45 30 40 33 40 38 C 40 45 50 55 50 55 C 50 55 60 45 60 38 C 60 33 55 30 50 30 Z" 
+        fill="white" opacity="0.95"/>
+  <circle cx="50" cy="38" r="3" fill="#10b981"/>
+</svg>
