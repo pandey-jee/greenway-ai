@@ -12,19 +12,14 @@ import {
 import { Clock, Users } from 'lucide-react';
 import { apiService } from '@/services/api';
 
-const destinations = [
-  'Goa Beach',
-  'Taj Mahal',
-  'Rishikesh',
-  'Jaipur Fort',
-  'Udaipur Lakes',
-  'Kerala Backwaters',
-  'Munnar Hills',
-  'Hampi Ruins',
-];
+interface HourlyCongestionTimelineProps {
+  destinations?: string[];
+}
 
-const HourlyCongestionTimeline = () => {
-  const [selectedDestination, setSelectedDestination] = useState<string>('Taj Mahal');
+const HourlyCongestionTimeline = ({ destinations }: HourlyCongestionTimelineProps) => {
+  const [selectedDestination, setSelectedDestination] = useState<string>(
+    destinations && destinations.length > 0 ? destinations[0] : ''
+  );
 
   const { data: timelineData, isLoading } = useQuery({
     queryKey: ['hourly-congestion', selectedDestination],
@@ -64,11 +59,16 @@ const HourlyCongestionTimeline = () => {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {destinations.map((dest) => (
-              <SelectItem key={dest} value={dest}>
-                {dest}
-              </SelectItem>
-            ))}
+            {destinations && destinations.length > 0 ? (
+              destinations.map((dest) => (
+                <SelectItem key={dest} value={dest}>
+                  {dest}
+                </SelectItem>
+              ))
+            ) : (
+              // Radix Select requires a non-empty value on items; use a sentinel and disable it
+              <SelectItem value="none" disabled>No destinations</SelectItem>
+            )}
           </SelectContent>
         </Select>
       </div>

@@ -5,6 +5,13 @@ import os
 import sys
 import pandas as pd
 import logging
+import builtins
+
+# silence all print statements during initialization for clean output
+builtins.print = lambda *args, **kwargs: None
+
+# configure logging at warning level so that debug/info messages are hidden
+logging.basicConfig(level=logging.WARNING)
 
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -13,12 +20,15 @@ from ml_models.clustering import TouristSegmentation
 from ml_models.prediction import CongestionPredictor
 from ml_models.esi_calculator import ESICalculator
 from utils.realtime_fetcher import RealTimeDataFetcher, get_realtime_data_with_fallback
+import json
+import os
 
 # Load environment variables
 load_dotenv()
 
 # Setup logging
-logging.basicConfig(level=logging.INFO)
+# keep at WARNING to avoid debug/info output
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
@@ -330,7 +340,17 @@ def get_congestion_weekly():
 @app.route('/api/congestion/forecast', methods=['GET'])
 def get_forecast():
     """Get 7-day forecast for specific location"""
-    location = request.args.get('location', 'Goa Beach')
+    location = request.args.get('location')
+    if not location:
+        # attempt default from zones file
+        try:
+            zones_file_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'zones.json')
+            with open(zones_file_path, 'r', encoding='utf-8') as f:
+                zones = json.load(f).get('IN', [])
+            if zones:
+                location = zones[0]['name']
+        except Exception:
+            location = None
     try:
         forecast = prediction_model.predict_next_7_days(location)
         return jsonify(forecast)
@@ -362,7 +382,16 @@ def get_tourist_segments():
 @app.route('/api/esi/current', methods=['GET'])
 def get_esi():
     """Calculate Environmental Stress Index"""
-    location = request.args.get('location', 'Goa Beach')
+    location = request.args.get('location')
+    if not location:
+        try:
+            zones_file_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'zones.json')
+            with open(zones_file_path, 'r', encoding='utf-8') as f:
+                zones = json.load(f).get('IN', [])
+            if zones:
+                location = zones[0]['name']
+        except Exception:
+            location = None
     
     try:
         esi_data = esi_calculator.calculate_esi(location_name=location)
@@ -459,89 +488,14 @@ def get_gis_zones():
     """Get GIS zones with density data, optionally filtered by country"""
     country_code = request.args.get('country', 'IN')  # Default to India
     
-    # Multi-country tourism destination data
-    all_destinations = {
-        'IN': [  # India
-            {'name': 'Goa Beach', 'lat': 15.2993, 'lng': 73.9512, 'density': 92, 'status': 'critical', 'country': 'India'},
-            {'name': 'Taj Mahal', 'lat': 27.1751, 'lng': 78.0421, 'density': 87, 'status': 'critical', 'country': 'India'},
-            {'name': 'Jaipur Fort', 'lat': 26.9855, 'lng': 75.8513, 'density': 65, 'status': 'moderate', 'country': 'India'},
-            {'name': 'Kerala Backwaters', 'lat': 9.4981, 'lng': 76.3388, 'density': 42, 'status': 'low', 'country': 'India'},
-            {'name': 'Hampi Ruins', 'lat': 15.3350, 'lng': 76.4600, 'density': 28, 'status': 'low', 'country': 'India'},
-            {'name': 'Udaipur Lakes', 'lat': 24.5854, 'lng': 73.7125, 'density': 55, 'status': 'moderate', 'country': 'India'},
-            {'name': 'Rishikesh', 'lat': 30.0869, 'lng': 78.2676, 'density': 73, 'status': 'high', 'country': 'India'},
-            {'name': 'Munnar Hills', 'lat': 10.0889, 'lng': 77.0595, 'density': 35, 'status': 'low', 'country': 'India'}
-        ],
-        'US': [  # United States
-            {'name': 'Grand Canyon', 'lat': 36.1069, 'lng': -112.1129, 'density': 78, 'status': 'high', 'country': 'United States'},
-            {'name': 'Times Square NYC', 'lat': 40.7580, 'lng': -73.9855, 'density': 95, 'status': 'critical', 'country': 'United States'},
-            {'name': 'Golden Gate Bridge', 'lat': 37.8199, 'lng': -122.4783, 'density': 68, 'status': 'high', 'country': 'United States'},
-            {'name': 'Yellowstone Park', 'lat': 44.4280, 'lng': -110.5885, 'density': 52, 'status': 'moderate', 'country': 'United States'},
-            {'name': 'Miami Beach', 'lat': 25.7907, 'lng': -80.1300, 'density': 82, 'status': 'critical', 'country': 'United States'},
-            {'name': 'Las Vegas Strip', 'lat': 36.1147, 'lng': -115.1728, 'density': 88, 'status': 'critical', 'country': 'United States'},
-            {'name': 'Niagara Falls', 'lat': 43.0828, 'lng': -79.0763, 'density': 62, 'status': 'moderate', 'country': 'United States'},
-            {'name': 'Hollywood Sign', 'lat': 34.1341, 'lng': -118.3215, 'density': 45, 'status': 'moderate', 'country': 'United States'}
-        ],
-        'FR': [  # France
-            {'name': 'Eiffel Tower', 'lat': 48.8584, 'lng': 2.2945, 'density': 93, 'status': 'critical', 'country': 'France'},
-            {'name': 'Louvre Museum', 'lat': 48.8606, 'lng': 2.3376, 'density': 89, 'status': 'critical', 'country': 'France'},
-            {'name': 'Mont Saint-Michel', 'lat': 48.6361, 'lng': -1.5115, 'density': 71, 'status': 'high', 'country': 'France'},
-            {'name': 'Palace of Versailles', 'lat': 48.8049, 'lng': 2.1204, 'density': 76, 'status': 'high', 'country': 'France'},
-            {'name': 'French Riviera', 'lat': 43.7102, 'lng': 7.2620, 'density': 58, 'status': 'moderate', 'country': 'France'},
-            {'name': 'Loire Valley', 'lat': 47.4084, 'lng': 0.7019, 'density': 38, 'status': 'low', 'country': 'France'},
-            {'name': 'Provence Lavender', 'lat': 43.9493, 'lng': 5.7248, 'density': 42, 'status': 'moderate', 'country': 'France'},
-            {'name': 'Normandy Beaches', 'lat': 49.3407, 'lng': -0.8889, 'density': 33, 'status': 'low', 'country': 'France'}
-        ],
-        'IT': [  # Italy
-            {'name': 'Colosseum Rome', 'lat': 41.8902, 'lng': 12.4922, 'density': 91, 'status': 'critical', 'country': 'Italy'},
-            {'name': 'Venice Canals', 'lat': 45.4408, 'lng': 12.3155, 'density': 94, 'status': 'critical', 'country': 'Italy'},
-            {'name': 'Florence Duomo', 'lat': 43.7731, 'lng': 11.2560, 'density': 85, 'status': 'critical', 'country': 'Italy'},
-            {'name': 'Leaning Tower Pisa', 'lat': 43.7230, 'lng': 10.3966, 'density': 72, 'status': 'high', 'country': 'Italy'},
-            {'name': 'Amalfi Coast', 'lat': 40.6340, 'lng': 14.6027, 'density': 67, 'status': 'high', 'country': 'Italy'},
-            {'name': 'Cinque Terre', 'lat': 44.1267, 'lng': 9.7163, 'density': 63, 'status': 'moderate', 'country': 'Italy'},
-            {'name': 'Lake Como', 'lat': 46.0155, 'lng': 9.2592, 'density': 48, 'status': 'moderate', 'country': 'Italy'},
-            {'name': 'Tuscan Countryside', 'lat': 43.3188, 'lng': 11.3307, 'density': 36, 'status': 'low', 'country': 'Italy'}
-        ],
-        'ES': [  # Spain
-            {'name': 'Sagrada Familia', 'lat': 41.4036, 'lng': 2.1744, 'density': 90, 'status': 'critical', 'country': 'Spain'},
-            {'name': 'Park Güell', 'lat': 41.4145, 'lng': 2.1527, 'density': 84, 'status': 'critical', 'country': 'Spain'},
-            {'name': 'Alhambra Granada', 'lat': 37.1761, 'lng': -3.5881, 'density': 79, 'status': 'high', 'country': 'Spain'},
-            {'name': 'Plaza Mayor Madrid', 'lat': 40.4155, 'lng': -3.7074, 'density': 69, 'status': 'high', 'country': 'Spain'},
-            {'name': 'Ibiza Beaches', 'lat': 38.9067, 'lng': 1.4206, 'density': 86, 'status': 'critical', 'country': 'Spain'},
-            {'name': 'Seville Cathedral', 'lat': 37.3863, 'lng': -5.9925, 'density': 56, 'status': 'moderate', 'country': 'Spain'},
-            {'name': 'Camino de Santiago', 'lat': 42.8805, 'lng': -8.5447, 'density': 41, 'status': 'moderate', 'country': 'Spain'},
-            {'name': 'Basque Country', 'lat': 43.3183, 'lng': -1.9812, 'density': 34, 'status': 'low', 'country': 'Spain'}
-        ],
-        'TH': [  # Thailand
-            {'name': 'Grand Palace Bangkok', 'lat': 13.7500, 'lng': 100.4915, 'density': 88, 'status': 'critical', 'country': 'Thailand'},
-            {'name': 'Phi Phi Islands', 'lat': 7.7407, 'lng': 98.7784, 'density': 92, 'status': 'critical', 'country': 'Thailand'},
-            {'name': 'Phuket Beach', 'lat': 7.8804, 'lng': 98.3923, 'density': 83, 'status': 'critical', 'country': 'Thailand'},
-            {'name': 'Chiang Mai Old City', 'lat': 18.7883, 'lng': 98.9853, 'density': 59, 'status': 'moderate', 'country': 'Thailand'},
-            {'name': 'Ayutthaya Temples', 'lat': 14.3532, 'lng': 100.5773, 'density': 51, 'status': 'moderate', 'country': 'Thailand'},
-            {'name': 'Krabi Beaches', 'lat': 8.0863, 'lng': 98.9063, 'density': 64, 'status': 'moderate', 'country': 'Thailand'},
-            {'name': 'Pai Valley', 'lat': 19.3581, 'lng': 98.4406, 'density': 29, 'status': 'low', 'country': 'Thailand'},
-            {'name': 'Koh Samui', 'lat': 9.5357, 'lng': 100.0630, 'density': 71, 'status': 'high', 'country': 'Thailand'}
-        ],
-        'JP': [  # Japan
-            {'name': 'Tokyo Tower', 'lat': 35.6586, 'lng': 139.7454, 'density': 87, 'status': 'critical', 'country': 'Japan'},
-            {'name': 'Mt Fuji', 'lat': 35.3606, 'lng': 138.7274, 'density': 74, 'status': 'high', 'country': 'Japan'},
-            {'name': 'Fushimi Inari Kyoto', 'lat': 34.9671, 'lng': 135.7727, 'density': 91, 'status': 'critical', 'country': 'Japan'},
-            {'name': 'Osaka Castle', 'lat': 34.6873, 'lng': 135.5262, 'density': 68, 'status': 'high', 'country': 'Japan'},
-            {'name': 'Hiroshima Peace Park', 'lat': 34.3955, 'lng': 132.4536, 'density': 47, 'status': 'moderate', 'country': 'Japan'},
-            {'name': 'Nara Deer Park', 'lat': 34.6851, 'lng': 135.8048, 'density': 62, 'status': 'moderate', 'country': 'Japan'},
-            {'name': 'Hokkaido Lavender', 'lat': 43.3916, 'lng': 142.7680, 'density': 38, 'status': 'low', 'country': 'Japan'},
-            {'name': 'Okinawa Beaches', 'lat': 26.2124, 'lng': 127.6809, 'density': 55, 'status': 'moderate', 'country': 'Japan'}
-        ],
-        'AE': [  # UAE
-            {'name': 'Burj Khalifa', 'lat': 25.1972, 'lng': 55.2744, 'density': 85, 'status': 'critical', 'country': 'UAE'},
-            {'name': 'Dubai Mall', 'lat': 25.1978, 'lng': 55.2795, 'density': 93, 'status': 'critical', 'country': 'UAE'},
-            {'name': 'Palm Jumeirah', 'lat': 25.1124, 'lng': 55.1390, 'density': 77, 'status': 'high', 'country': 'UAE'},
-            {'name': 'Sheikh Zayed Mosque', 'lat': 24.4129, 'lng': 54.4754, 'density': 70, 'status': 'high', 'country': 'UAE'},
-            {'name': 'Dubai Marina', 'lat': 25.0801, 'lng': 55.1397, 'density': 68, 'status': 'high', 'country': 'UAE'},
-            {'name': 'Abu Dhabi Louvre', 'lat': 24.5338, 'lng': 54.3985, 'density': 52, 'status': 'moderate', 'country': 'UAE'},
-            {'name': 'Desert Safari Dubai', 'lat': 25.0074, 'lng': 55.5514, 'density': 44, 'status': 'moderate', 'country': 'UAE'},
-            {'name': 'Ras Al Khaimah', 'lat': 25.7896, 'lng': 55.9433, 'density': 31, 'status': 'low', 'country': 'UAE'}
-        ]
-    }
+    # Load zone definitions from external JSON file
+    zones_file_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'zones.json')
+    try:
+        with open(zones_file_path, 'r', encoding='utf-8') as f:
+            all_destinations = json.load(f)
+    except Exception as e:
+        app.logger.error(f"Unable to load zone definitions: {e}")
+        all_destinations = {}
     
     # Return destinations for the requested country
     destinations = all_destinations.get(country_code, all_destinations['IN']).copy()

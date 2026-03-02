@@ -41,9 +41,16 @@ const Dashboard = () => {
     queryFn: apiService.getTouristSegments,
   });
 
+  // fetch gis zones first since other queries depend on them
+  const { data: gisZones, isLoading: gisLoading } = useQuery({
+    queryKey: ['gis', selectedCountry],
+    queryFn: () => apiService.getGISZones(selectedCountry),
+  });
+
   const { data: esiData } = useQuery({
-    queryKey: ['esi'],
-    queryFn: () => apiService.getESI('Goa Beach'),
+    queryKey: ['esi', gisZones?.[0]?.name],
+    queryFn: () => apiService.getESI(gisZones && gisZones.length > 0 ? gisZones[0].name : ''),
+    enabled: !!gisZones && gisZones.length > 0,
   });
 
   const { data: recommendations } = useQuery({
@@ -54,11 +61,6 @@ const Dashboard = () => {
   const { data: alerts } = useQuery({
     queryKey: ['alerts'],
     queryFn: apiService.getAlerts,
-  });
-
-  const { data: gisZones } = useQuery({
-    queryKey: ['gis', selectedCountry],
-    queryFn: () => apiService.getGISZones(selectedCountry),
   });
 
   // Build KPI cards from API data
@@ -136,26 +138,22 @@ const Dashboard = () => {
           <AlertsPanel data={alerts} />
         </div>
 
-        {/* AI Insights Row */}
+        {/* AI Insights + Hourly Timeline Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
           <AIInsightsPanel />
-          <HourlyCongestionTimeline />
-        </div>
-
-        {/* AI Insights Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
-          <AIInsightsPanel />
-          <HourlyCongestionTimeline />
+          <HourlyCongestionTimeline
+            destinations={gisZones ? gisZones.map(z => z.name) : []}
+          />
         </div>
 
         {/* Booking Check Row */}
         <div className="mb-5">
-          <DestinationBooking destinations={gisZones} />
+          <DestinationBooking destinations={gisZones} loading={gisLoading} />
         </div>
 
         {/* Bottom Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <InteractiveMap data={gisZones} />
+          <InteractiveMap data={gisZones} loading={gisLoading} />
           <RecommendationsPanel data={recommendations} />
         </div>
       </main>

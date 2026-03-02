@@ -26,20 +26,12 @@ interface ZoneData {
 
 interface InteractiveMapProps {
   data?: ZoneData[];
+  loading?: boolean;
 }
 
-const defaultZones: ZoneData[] = [
-  { name: "Goa Beach", density: 92, lat: 15.2993, lng: 73.9512, status: "critical" },
-  { name: "Taj Mahal", density: 87, lat: 27.1751, lng: 78.0421, status: "critical" },
-  { name: "Jaipur Fort", density: 65, lat: 26.9855, lng: 75.8513, status: "moderate" },
-  { name: "Kerala Backwaters", density: 42, lat: 9.4981, lng: 76.3388, status: "low" },
-  { name: "Hampi Ruins", density: 28, lat: 15.3350, lng: 76.4600, status: "low" },
-  { name: "Udaipur Lakes", density: 55, lat: 24.5854, lng: 73.7125, status: "moderate" },
-  { name: "Rishikesh", density: 73, lat: 30.0869, lng: 78.2676, status: "high" },
-  { name: "Munnar Hills", density: 35, lat: 10.0889, lng: 77.0595, status: "low" },
-];
+// Note: map zones are provided by props via API; no hardcoded defaults.
 
-const InteractiveMap = ({ data }: InteractiveMapProps) => {
+const InteractiveMap = ({ data, loading }: InteractiveMapProps) => {
   // Normalize data to ensure lng property exists (handle both lng and lon)
   const normalizeZones = (zones: ZoneData[]) => {
     return zones.map(zone => ({
@@ -49,7 +41,7 @@ const InteractiveMap = ({ data }: InteractiveMapProps) => {
     }));
   };
 
-  const zones = data && data.length > 0 ? normalizeZones(data) : defaultZones;
+  const zones = data && data.length > 0 ? normalizeZones(data) : [];
 
   // Center of India
   const centerLat = 20.5937;
@@ -85,6 +77,16 @@ const InteractiveMap = ({ data }: InteractiveMapProps) => {
       </p>
 
       <div className="rounded-lg overflow-hidden border border-border/50" style={{ height: '500px' }}>
+        {loading && (
+          <div className="flex items-center justify-center h-full">
+            <span className="text-muted-foreground">Loading map data…</span>
+          </div>
+        )}
+        {!loading && zones.length === 0 && (
+          <div className="flex items-center justify-center h-full">
+            <span className="text-muted-foreground">No zone data available</span>
+          </div>
+        )}
         <MapContainer
           center={[centerLat, centerLng]}
           zoom={5}

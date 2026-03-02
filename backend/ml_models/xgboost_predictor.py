@@ -8,7 +8,10 @@ import numpy as np
 from datetime import datetime, timedelta
 import os
 import warnings
+import logging
+
 warnings.filterwarnings('ignore')
+logger = logging.getLogger(__name__)
 
 try:
     import xgboost as xgb
@@ -16,7 +19,7 @@ try:
     XGBOOST_AVAILABLE = True
 except ImportError:
     XGBOOST_AVAILABLE = False
-    print("⚠️  XGBoost not installed. XGBoost predictor unavailable.")
+    logger.debug("XGBoost not installed; XGBoost predictor unavailable.")
 
 
 class XGBoostCongestionPredictor:
@@ -82,11 +85,11 @@ class XGBoostCongestionPredictor:
     def train(self, data_path='../data/tourist_timeseries.csv', location=None):
         """Train XGBoost model for each location"""
         if not self.available:
-            print("⚠️  XGBoost not available. Cannot train.")
+            logger.debug("XGBoost not available. Cannot train.")
             return False
             
         if not os.path.exists(data_path):
-            print(f"⚠️  Data file not found: {data_path}")
+            logger.debug(f"Data file not found: {data_path}")
             return False
         
         df = pd.read_csv(data_path)
@@ -95,7 +98,7 @@ class XGBoostCongestionPredictor:
         locations = [location] if location else df['location'].unique()
         
         for loc in locations:
-            print(f"\n🚀 Training XGBoost for {loc}...")
+            logger.debug(f"Training XGBoost for {loc}...")
             loc_data = df[df['location'] == loc].copy()
             loc_data = loc_data.sort_values('date')
             
@@ -106,7 +109,7 @@ class XGBoostCongestionPredictor:
             loc_data = loc_data.dropna()
             
             if len(loc_data) < 50:
-                print(f"⚠️  Insufficient data for {loc}")
+                logger.debug(f"Insufficient data for {loc}")
                 continue
             
             # Prepare features and target
@@ -154,24 +157,24 @@ class XGBoostCongestionPredictor:
                     'last_data': loc_data.tail(30)  # Store recent data for prediction
                 }
                 
-                print(f"✅ XGBoost trained for {loc}")
-                print(f"   📊 Train R²: {train_score:.4f}, Val R²: {val_score:.4f}")
+                logger.debug(f"XGBoost trained for {loc}")
+                logger.debug(f"Train R²: {train_score:.4f}, Val R²: {val_score:.4f}")
                 
                 # Feature importance (top 5)
                 importance = model.feature_importances_
                 top_features = sorted(zip(feature_cols, importance), 
                                     key=lambda x: x[1], reverse=True)[:5]
-                print(f"   🔍 Top features: {', '.join([f[0] for f in top_features])}")
+                logger.debug(f"Top features: {', '.join([f[0] for f in top_features])}")
                 
             except Exception as e:
-                print(f"❌ Training failed for {loc}: {e}")
+                logger.debug(f"Training failed for {loc}: {e}")
         
         return len(self.models) > 0
     
     def predict_next_7_days(self, location):
         """Predict next 7 days using XGBoost"""
         if location not in self.models:
-            print(f"⚠️  No model trained for {location}")
+            logger.debug(f"No model trained for {location}")
             return None
         
         model_data = self.models[location]

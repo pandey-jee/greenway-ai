@@ -8,7 +8,11 @@ import numpy as np
 from datetime import datetime, timedelta
 import os
 import warnings
+import logging
+
 warnings.filterwarnings('ignore')
+
+logger = logging.getLogger(__name__)
 
 try:
     import tensorflow as tf
@@ -20,7 +24,7 @@ try:
     TENSORFLOW_AVAILABLE = True
 except ImportError:
     TENSORFLOW_AVAILABLE = False
-    print("⚠️  TensorFlow not installed. LSTM predictor unavailable.")
+    logger.debug("TensorFlow not installed; LSTM predictor unavailable.")
 
 
 class LSTMCongestionPredictor:
@@ -75,12 +79,11 @@ class LSTMCongestionPredictor:
     def train(self, data_path='../data/tourist_timeseries.csv', location=None):
         """Train LSTM model for each location"""
         if not self.available:
-            print("⚠️  TensorFlow not available. Cannot train LSTM.")
+            logger.debug("TensorFlow not available. Cannot train LSTM.")
             return False
-            
+        
         if not os.path.exists(data_path):
-            print(f"⚠️  Data file not found: {data_path}")
-            return False
+            logger.debug(f"Data file not found: {data_path}")
         
         df = pd.read_csv(data_path)
         df['date'] = pd.to_datetime(df['date'])
@@ -88,7 +91,7 @@ class LSTMCongestionPredictor:
         locations = [location] if location else df['location'].unique()
         
         for loc in locations:
-            print(f"\n🧠 Training LSTM for {loc}...")
+            logger.debug(f"Training LSTM for {loc}...")
             loc_data = df[df['location'] == loc].copy()
             loc_data = loc_data.sort_values('date')
             
@@ -103,7 +106,7 @@ class LSTMCongestionPredictor:
             X, y = self.create_sequences(scaled_data, self.sequence_length)
             
             if len(X) < 50:  # Need sufficient data
-                print(f"⚠️  Insufficient data for {loc}")
+                logger.debug(f"Insufficient data for {loc}")
                 continue
             
             # Split train/validation
@@ -151,18 +154,18 @@ class LSTMCongestionPredictor:
                 val_loss = history.history['val_loss'][-1]
                 val_mae = history.history['val_mae'][-1]
                 
-                print(f"✅ LSTM trained for {loc}")
-                print(f"   📊 Val Loss: {val_loss:.4f}, Val MAE: {val_mae:.4f}")
+                logger.debug(f"LSTM trained for {loc}")
+                logger.debug(f"Val Loss: {val_loss:.4f}, Val MAE: {val_mae:.4f}")
                 
             except Exception as e:
-                print(f"❌ Training failed for {loc}: {e}")
+                logger.debug(f"Training failed for {loc}: {e}")
                 
         return len(self.models) > 0
     
     def predict_next_7_days(self, location, data_path='../data/tourist_timeseries.csv'):
         """Predict next 7 days using LSTM"""
         if location not in self.models:
-            print(f"⚠️  No model trained for {location}")
+            logger.debug(f"No model trained for {location}")
             return None
         
         model = self.models[location]
@@ -221,7 +224,7 @@ class LSTMCongestionPredictor:
         for loc, model in self.models.items():
             model_path = os.path.join(output_dir, f"{loc.replace(' ', '_')}_lstm.h5")
             model.save(model_path)
-            print(f"💾 Saved LSTM model for {loc}")
+            logger.debug(f"Saved LSTM model for {loc}")
     
     def load_models(self, input_dir='models/lstm'):
         """Load saved models"""
@@ -236,7 +239,7 @@ class LSTMCongestionPredictor:
                 loc = filename.replace('_lstm.h5', '').replace('_', ' ')
                 model_path = os.path.join(input_dir, filename)
                 self.models[loc] = keras.models.load_model(model_path)
-                print(f"✅ Loaded LSTM model for {loc}")
+                logger.debug(f"Loaded LSTM model for {loc}")
         
         return len(self.models) > 0
 
@@ -252,6 +255,6 @@ if __name__ == "__main__":
         # Predict
         predictions = predictor.predict_next_7_days('Goa Beach')
         if predictions:
-            print("\n📈 7-Day Forecast (LSTM):")
+            logger.debug("7-Day Forecast (LSTM):")
             for pred in predictions:
-                print(f"  {pred['day']} {pred['date']}: {pred['predicted']} tourists")
+                logger.debug(f"{pred['day']} {pred['date']}: {pred['predicted']} tourists")

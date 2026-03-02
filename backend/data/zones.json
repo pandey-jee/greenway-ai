@@ -1,0 +1,61 @@
+{
+  "IN": [
+    { "name": "Goa Beach", "lat": 15.2993, "lng": 73.9512, "country": "India" },
+    { "name": "Taj Mahal", "lat": 27.1751, "lng": 78.0421, "country": "India" },
+    { "name": "Jaipur Fort", "lat": 26.9855, "lng": 75.8513, "country": "India" },
+    { "name": "Kerala Backwaters", "lat": 9.4981, "lng": 76.3388, "country": "India" },
+    { "name": "Hampi Ruins", "lat": 15.3350, "lng": 76.4600, "country": "India" },
+    { "name": "Udaipur Lakes", "lat": 24.5854, "lng": 73.7125, "country": "India" },
+    { "name": "Rishikesh", "lat": 30.0869, "lng": 78.2676, "country": "India" },
+    { "name": "Munnar Hills", "lat": 10.0889, "lng": 77.0595, "country": "India" }
+  ],
+  "US": [
+    { "name": "Grand Canyon", "lat": 36.1069, "lng": -112.1129, "country": "United States" },
+    { "name": "Times Square NYC", "lat": 40.7580, "lng": -73.9855, "country": "United States" },
+    { "name": "Golden Gate Bridge", "lat": 37.8199, "lng": -122.4783, "country": "United States" },
+    { "name": "Yellowstone Park", "lat": 44.4280, "lng": -110.5885, "country": "United States" },
+    { "name": "Miami Beach", "lat": 25.7907, "lng": -80.1300, "country": "United States" },
+    { "name": "Las Vegas Strip", "lat": 36.1147, "lng": -115.1728, "country": "United States" },
+    { "name": "Niagara Falls", "lat": 43.0828, "lng": -79.0763, "country": "United States" },
+    { "name": "Hollywood Sign", "lat": 34.1341, "lng": -118.3215, "country": "United States" }
+  ],
+  "FR": [
+    { "name": "Eiffel Tower", "lat": 48.8584, "lng": 2.2945, "country": "France" },
+    { "name": "Louvre Museum", "lat": 48.8606, "lng": 2.3376, "country": "France" },
+    { "name": "Mont Saint-Michel", "lat": 48.6361, "lng": -1.5115, "country": "France" },
+    { "name": "Palace of Versailles", "lat": 48.8049, "lng": 2.1204, "country": "France" },
+    { "name": "French Riviera", "lat": 43.7102, "lng": 7.2620, "country": "France" },
+    { "name": "Loire Valley", "lat": 47.4084, "lng": 0.7019, "country": "France" },
+    { "name": "Provence Lavender", "lat": 43.9493, "lng": 5.7248, "country": "France" },
+    { "name": "Normandy Beaches", "lat": 49.3407, "lng": -0.8889, "country": "France" }
+  ],
+  "IT": [
+    { "name": "Colosseum Rome", "lat": 41.8902, "lng": 12.4922, "country": "Italy" },
+    { "name": "Venice Canals", "lat": 45.4408, "lng": 12.3155, "country": "Italy" },
+    { "name": "Florence Duomo", "lat": 43.7731, "lng": 11.2560, "country": "Italy" },
+    { "name": "Leaning Tower Pisa", "lat": 43.7230, "lng": 10.3966, "country": "Italy" },
+    { "name": "Amalfi Coast", "lat": 40.6340, "lng": 14.6027, "country": "Italy" },
+    { "name": "Cinque Terre", "lat": 44.1267, "lng": 9.7163, "country": "Italy" },
+    { "name": "Lake Como", "lat": 46.0155, "lng": 9.2592, "country": "Italy" },
+    { "name": "Tuscan Countryside", "lat": 43.3188, "lng": 11.3307, "country": "Italy" }
+  ],
+  "ES": [
+    { "name": "Sagrada Familia", "lat": 41.4036, "lng": 2.1744, "country": "Spain" },
+    { "name": "Park Güell", "lat": 41.4145, "lng": 2.1527, "country": "Spain" },
+    { "name": "Alhambra Granada", "lat": 37.1761, "lng": -3.5881, "country": "Spain" },
+    { "name": "Plaza Mayor Madrid", "lat": 40.4155, "lng": -3.7074, "country": "Spain" },
+    { "name": "Ibiza Beaches", "lat": 38.9067, "lng": 1.4206, "country": "Spain" },
+    { "name": "Seville Cathedral", "lat": 37.3863, "lng": -5.9925, "country": "Spain" },
+    { "name": "Camino de Santiago", "lat": 42.8805, "lng": -8.5447, "country": "Spain" },
+    { "name": "Basque Country", "lat": 43.3183, "lng": -1.9812, "country": "Spain" }
+  ],
+  "TH": [
+    { "name": "Grand Palace Bangkok", "lat": 13.7500, "lng": 100.4915, "country": "Thailand" },
+    { "name": "Phi Phi Islands", "lat": 7.7407, "lng": 98.7784, "country": "Thailand" },
+    { "name": "Phuket Beach", "lat": 7.8804, "lng": 98.3923, "country": "Thailand" },
+    { "name": "Chiang Mai Old City", "lat": 18.7883, "lng": 98.9853, "country": "Thailand" },
+    { "name": "Ayutthaya Temples", "lat": 14.3532, "lng": 100.5773, "country": "Thailand" },
+    { "name": "Krabi Beaches", "lat": 8.0863, "lng": 98.9063, "country": "Thailand" },
+    { "name": "... (truncated for brevity)" }
+  ]
+}

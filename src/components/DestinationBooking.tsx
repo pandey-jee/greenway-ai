@@ -24,27 +24,17 @@ interface Destination {
 
 interface DestinationBookingProps {
   destinations?: Destination[];
+  loading?: boolean;
 }
 
-const defaultDestinations: Destination[] = [
-  { name: 'Goa Beach', density: 92, lat: 15.2993, lng: 73.9512, status: 'critical', bestTime: 'Early Morning (6-8 AM)', alternativeTime: 'Late Evening (6-8 PM)', estimatedVisitors: 15000 },
-  { name: 'Taj Mahal', density: 87, lat: 27.1751, lng: 78.0421, status: 'critical', bestTime: 'Sunrise (5:30-7:00 AM)', alternativeTime: 'Weekdays Only', estimatedVisitors: 12000 },
-  { name: 'Rishikesh', density: 73, lat: 30.0869, lng: 78.2676, status: 'high', bestTime: 'Morning (7-10 AM)', alternativeTime: 'Afternoon (2-5 PM)', estimatedVisitors: 8500 },
-  { name: 'Jaipur Fort', density: 65, lat: 26.9855, lng: 75.8513, status: 'moderate', bestTime: 'Anytime', alternativeTime: 'Avoid 11 AM-2 PM', estimatedVisitors: 5200 },
-  { name: 'Udaipur Lakes', density: 55, lat: 24.5854, lng: 73.7125, status: 'moderate', bestTime: 'Anytime', alternativeTime: 'Sunset Recommended', estimatedVisitors: 4100 },
-  { name: 'Kerala Backwaters', density: 42, lat: 9.4981, lng: 76.3388, status: 'low', bestTime: 'Anytime', alternativeTime: 'Morning Preferred', estimatedVisitors: 2800 },
-  { name: 'Munnar Hills', density: 35, lat: 10.0889, lng: 77.0595, status: 'low', bestTime: 'Anytime', alternativeTime: 'Ideal Destination', estimatedVisitors: 1900 },
-  { name: 'Hampi Ruins', density: 28, lat: 15.3350, lng: 76.4600, status: 'low', bestTime: 'Anytime', alternativeTime: 'Perfect for Visit', estimatedVisitors: 1200 },
-];
-
-const DestinationBooking = ({ destinations }: DestinationBookingProps) => {
+const DestinationBooking = ({ destinations, loading }: DestinationBookingProps) => {
   const [selectedDestination, setSelectedDestination] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [numberOfVisitors, setNumberOfVisitors] = useState<string>('');
   const [bookingResult, setBookingResult] = useState<Destination | null>(null);
   const { toast } = useToast();
 
-  const allDestinations = destinations && destinations.length > 0 ? destinations : defaultDestinations;
+  const allDestinations = destinations && destinations.length > 0 ? destinations : [];
 
   const handleCheckAvailability = () => {
     if (!selectedDestination) return;
@@ -143,6 +133,12 @@ const DestinationBooking = ({ destinations }: DestinationBookingProps) => {
 
       {/* Booking Form */}
       <div className="space-y-4 mb-6">
+        {loading && (
+          <div className="text-center text-muted-foreground">Loading destinations…</div>
+        )}
+        {!loading && allDestinations.length === 0 && (
+          <div className="text-center text-muted-foreground">No destinations available</div>
+        )}
         <div>
           <label className="text-sm font-medium text-foreground mb-2 block">
             Select Destination

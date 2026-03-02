@@ -1,6 +1,9 @@
 // API Service for connecting React frontend to Flask backend
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// ensure the base URL ends with '/api' so we don't accidentally call the wrong path
+const rawBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = rawBase.endsWith('/api') ? rawBase : `${rawBase.replace(/\/+$/,'')}/api`;
+
 
 // Helper function for API calls
 async function fetchAPI<T>(endpoint: string): Promise<T> {
@@ -78,7 +81,7 @@ export const apiService = {
   /**
    * Get Environmental Stress Index for a location
    */
-  async getESI(location: string = 'Goa Beach') {
+  async getESI(location: string) {
     return fetchAPI<{
       score: number;
       level: string;

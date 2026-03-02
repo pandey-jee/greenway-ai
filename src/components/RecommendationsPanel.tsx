@@ -1,39 +1,6 @@
 import { Leaf, Train, Hotel, Bike, LucideIcon } from "lucide-react";
 
-const recommendationsFallback = [
-  {
-    type: "Attraction",
-    icon: "Leaf",
-    title: "Hampi Ruins",
-    subtitle: "Alternative to Taj Mahal",
-    reason: "87% lower congestion, UNESCO heritage site",
-    ecoScore: 92,
-  },
-  {
-    type: "Hotel",
-    icon: "Hotel",
-    title: "EcoStay Kerala",
-    subtitle: "Eco-certified accommodation",
-    reason: "Solar powered, zero-waste certified",
-    ecoScore: 96,
-  },
-  {
-    type: "Transport",
-    icon: "Train",
-    title: "Konkan Railway",
-    subtitle: "Scenic rail route",
-    reason: "78% less carbon vs flying, coastal views",
-    ecoScore: 88,
-  },
-  {
-    type: "Activity",
-    icon: "Bike",
-    title: "Munnar Bicycle Tour",
-    subtitle: "Zero-emission exploration",
-    reason: "Supports local guides, low environmental impact",
-    ecoScore: 95,
-  },
-];
+// No hardcoded recommendations; data must come from API.
 
 const iconMap: Record<string, LucideIcon> = {
   Leaf,
@@ -65,13 +32,16 @@ const RecommendationsPanel = ({ data }: RecommendationsPanelProps) => {
         reason: d.reasoning,
         ecoScore: d.eco_score,
       }))
-    : recommendationsFallback;
+    : [];
   return (
     <div className="glass-card rounded-xl p-6">
       <h3 className="text-foreground font-semibold text-lg mb-1">Sustainable Recommendations</h3>
       <p className="text-muted-foreground text-sm mb-5">AI-powered eco-friendly alternatives</p>
 
       <div className="space-y-3">
+        {recommendations.length === 0 && (
+          <div className="text-center text-muted-foreground py-6">No recommendations available</div>
+        )}
         {recommendations.map((r) => {
           const IconComponent = typeof r.icon === "string" ? iconMap[r.icon] || Leaf : r.icon;
           return (

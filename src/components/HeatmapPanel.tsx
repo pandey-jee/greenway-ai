@@ -1,13 +1,4 @@
-const zonesFallback = [
-  { name: "Goa Beach", density: 92, lat: "15.2993°N", lng: "73.9512°E", status: "critical" as const },
-  { name: "Taj Mahal", density: 87, lat: "27.1751°N", lng: "78.0421°E", status: "critical" as const },
-  { name: "Jaipur Fort", density: 65, lat: "26.9855°N", lng: "75.8513°E", status: "moderate" as const },
-  { name: "Kerala Backwaters", density: 42, lat: "9.4981°N", lng: "76.3388°E", status: "low" as const },
-  { name: "Hampi Ruins", density: 28, lat: "15.3350°N", lng: "76.4600°E", status: "low" as const },
-  { name: "Udaipur Lakes", density: 55, lat: "24.5854°N", lng: "73.7125°E", status: "moderate" as const },
-  { name: "Rishikesh", density: 73, lat: "30.0869°N", lng: "78.2676°E", status: "high" as const },
-  { name: "Munnar Hills", density: 35, lat: "10.0889°N", lng: "77.0595°E", status: "low" as const },
-];
+// HeatmapPanel now relies entirely on props for zone data; no hardcoded fallback
 
 const statusColors = {
   critical: "bg-destructive/20 text-destructive border-destructive/30",
@@ -44,7 +35,7 @@ const HeatmapPanel = ({ data }: HeatmapPanelProps) => {
         lng: d.lng != null ? `${d.lng.toFixed(4)}°${d.lng >= 0 ? 'E' : 'W'}` : 'N/A',
         status: d.status,
       }))
-    : zonesFallback;
+    : [];
   return (
     <div className="glass-card rounded-xl p-6">
       <h3 className="text-foreground font-semibold text-lg mb-1">GIS Density Heatmap</h3>
@@ -53,6 +44,11 @@ const HeatmapPanel = ({ data }: HeatmapPanelProps) => {
       {/* Simulated map */}
       <div className="relative bg-muted/30 rounded-lg border border-border/50 p-4 mb-5 h-48 overflow-hidden">
         <div className="absolute inset-0 bg-grid opacity-30" />
+        {zones.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-muted-foreground">No data available</span>
+          </div>
+        )}
         {zones.map((z, i) => {
           const x = 10 + (i % 4) * 23;
           const y = 15 + Math.floor(i / 4) * 50;

@@ -33,7 +33,15 @@ GreenWay AI helps tourism authorities and policymakers make data-driven decision
 - Python 3.8+ with pip
 - Node.js 18+ with npm
 
-### 1. Start Backend (Terminal 1)
+### 1. Configure Environment Variables
+Copy the example file and edit your real keys (in **.env**, not .env.example):
+```powershell
+copy .env.example .env
+# then open .env in your editor and replace placeholders
+```
+You can supply **any** of the optional real-time API keys (Google Places, TomTom Traffic, OpenWeather, Twitter). If you don't have a Google Places key, just leave it blank and use TomTom or OpenWeather instead; the backend will fall back gracefully to synthetic data.
+
+### 2. Start Backend (Terminal 1)
 ```powershell
 # Activate virtual environment
 .\.venv\Scripts\Activate.ps1
