@@ -93,8 +93,9 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+# lib/ and lib64/ removed - these Python venv dirs don't exist in this project
+# and were blocking src/lib/utils.ts from being tracked
+!src/lib/
 parts/
 sdist/
 var/
@@ -110,3 +111,4 @@ ENV/
 .venv
 .env
 *.pyc
+.vercel
