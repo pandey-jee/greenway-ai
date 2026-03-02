@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 # Configure CORS
-cors_origins = os.getenv('CORS_ORIGINS', 'https://greenway-ai.onrender.com,https://greenway-ai.vercel.app,http://localhost:8080,http://localhost:5173').split(',')
+cors_origins = os.getenv('CORS_ORIGINS', 'https://green-way-ai.vercel.app,https://greenway-ai.vercel.app,https://greenway-ai.onrender.com,http://localhost:8080,http://localhost:5173').split(',')
 CORS(app, resources={
     r"/api/*": {
         "origins": cors_origins,
