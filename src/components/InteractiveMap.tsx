@@ -1,7 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import MapFilterPanel, { MapFilters } from './MapFilterPanel';
+import { useMapFilters, useZoneCountries } from '@/hooks/useMapFilters';
 
 // Fix for default marker icons in Leaflet with Vite
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -22,16 +24,24 @@ interface ZoneData {
   lng: number;
   density: number;
   status: "critical" | "high" | "moderate" | "low";
+  country?: string;
+  ecoScore?: number;
 }
 
 interface InteractiveMapProps {
   data?: ZoneData[];
   loading?: boolean;
+  enableFilters?: boolean;
 }
 
 // Note: map zones are provided by props via API; no hardcoded defaults.
 
-const InteractiveMap = ({ data, loading }: InteractiveMapProps) => {
+const InteractiveMap = ({ data, loading, enableFilters = false }: InteractiveMapProps) => {
+  const [filters, setFilters] = useState<MapFilters>({
+    statuses: ['critical', 'high', 'moderate', 'low'],
+    countries: [],
+    minEcoScore: 0,
+  });
   // Normalize data to ensure lng property exists (handle both lng and lon)
   const normalizeZones = (zones: ZoneData[]) => {
     return zones.map(zone => ({
@@ -41,7 +51,11 @@ const InteractiveMap = ({ data, loading }: InteractiveMapProps) => {
     }));
   };
 
-  const zones = data && data.length > 0 ? normalizeZones(data) : [];
+  const normalizedZones = data && data.length > 0 ? normalizeZones(data) : [];
+  const availableCountries = useZoneCountries(normalizedZones);
+  const filteredZones = enableFilters 
+    ? useMapFilters(normalizedZones, filters)
+    : normalizedZones;
 
   // Center of India
   const centerLat = 20.5937;
@@ -76,15 +90,30 @@ const InteractiveMap = ({ data, loading }: InteractiveMapProps) => {
         Real-time tourist density with interactive markers
       </p>
 
+      {/* Filter Panel */}
+      {enableFilters && (
+        <div className="mb-4">
+          <MapFilterPanel
+            filters={filters}
+            onFiltersChange={setFilters}
+            availableCountries={availableCountries}
+          />
+        </div>
+      )}
+
       <div className="rounded-lg overflow-hidden border border-border/50" style={{ height: '500px' }}>
         {loading && (
           <div className="flex items-center justify-center h-full">
             <span className="text-muted-foreground">Loading map data…</span>
           </div>
         )}
-        {!loading && zones.length === 0 && (
+        {!loading && filteredZones.length === 0 && (
           <div className="flex items-center justify-center h-full">
-            <span className="text-muted-foreground">No zone data available</span>
+            <span className="text-muted-foreground">
+              {normalizedZones.length === 0 
+                ? 'No zone data available'
+                : 'No zones match the current filters'}
+            </span>
           </div>
         )}
         <MapContainer
@@ -98,7 +127,7 @@ const InteractiveMap = ({ data, loading }: InteractiveMapProps) => {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-          {zones.map((zone, index) => (
+          {filteredZones.map((zone, index) => (
             <div key={`${zone.name}-${index}`}>
               {/* Circle overlay showing congestion radius */}
               <Circle
@@ -168,7 +197,7 @@ const InteractiveMap = ({ data, loading }: InteractiveMapProps) => {
 
       {/* Zone List */}
       <div className="mt-4 space-y-2 max-h-48 overflow-y-auto">
-        {zones.map((zone, index) => (
+        {filteredZones.map((zone, index) => (
           <div
             key={`zone-list-${index}-${zone.name}`}
             className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/30 hover:bg-muted/30 transition-colors"

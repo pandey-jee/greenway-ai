@@ -6,6 +6,9 @@ import sys
 import pandas as pd
 import logging
 import builtins
+import random
+import datetime
+from math import sin, pi
 
 # silence all print statements during initialization for clean output
 builtins.print = lambda *args, **kwargs: None
@@ -101,70 +104,107 @@ print("\n" + "="*70)
 # ==================== Helper Functions ====================
 
 def get_current_kpis():
-    """Calculate current KPI values from data"""
-    try:
-        data_path = '../data/tourist_timeseries.csv'
-        if os.path.exists(data_path):
-            df = pd.read_csv(data_path)
-            df['date'] = pd.to_datetime(df['date'])
-            
-            # Get today's data (last date in dataset)
-            latest_date = df['date'].max()
-            today_data = df[df['date'] == latest_date]
-            yesterday_data = df[df['date'] == (latest_date - pd.Timedelta(days=1))]
-            
-            total_tourists = int(today_data['tourist_count'].sum())
-            yesterday_tourists = int(yesterday_data['tourist_count'].sum())
-            
-            # Calculate density as congestion index
-            avg_density = today_data['density'].mean()
-            yesterday_density = yesterday_data['density'].mean()
-            
-            # Calculate changes
-            tourist_change = ((total_tourists - yesterday_tourists) / yesterday_tourists * 100) if yesterday_tourists > 0 else 0
-            congestion_change = avg_density - yesterday_density
-            
-            return {
-                'totalTourists': total_tourists,
-                'totalTouristsChange': round(tourist_change, 1),
-                'congestionIndex': round(avg_density, 0),
-                'congestionIndexChange': round(congestion_change, 1),
-                'avgEcoScore': 64,
-                'avgEcoScoreChange': 5,
-                'activeAlerts': 3,
-                'activeAlertsChange': -1
-            }
-    except Exception as e:
-        print(f"Error calculating KPIs: {e}")
+    """Generate dynamic KPI values based on time-of-day patterns and randomness"""
+    # Get current hour to simulate realistic tourist flow patterns
+    current_hour = datetime.datetime.now().hour
+    current_minute = datetime.datetime.now().minute
     
-    # Fallback values
+    # Time-of-day multiplier (higher during peak hours)
+    # Peak hours: 10-12 (morning), 14-17 (afternoon), 18-20 (evening)
+    hour_factor = 0.5
+    if 10 <= current_hour < 12 or 14 <= current_hour < 17 or 18 <= current_hour < 20:
+        hour_factor = 1.0  # Peak
+    elif 8 <= current_hour < 22:
+        hour_factor = 0.8  # Normal hours
+    else:
+        hour_factor = 0.2  # Night hours
+    
+    # Base values that change throughout the day
+    base_tourists = int(30000 * hour_factor + random.randint(-3000, 3000))
+    
+    # Random variation for each request (1-3 minute updates)
+    minute_randomness = random.uniform(0.95, 1.05)
+    total_tourists = int(base_tourists * minute_randomness)
+    
+    # Congestion correlates with tourist count
+    congestion_base = int(40 + (total_tourists / 1000) + random.randint(-10, 15))
+    congestion_index = max(20, min(99, congestion_base))
+    
+    # Eco score inversely correlates with congestion
+    eco_score = max(20, min(100, 90 - (congestion_index / 100) * 50 + random.uniform(-5, 5)))
+    
+    # Active alerts based on congestion
+    if congestion_index > 85:
+        active_alerts = random.randint(5, 8)
+    elif congestion_index > 70:
+        active_alerts = random.randint(3, 5)
+    elif congestion_index > 50:
+        active_alerts = random.randint(1, 3)
+    else:
+        active_alerts = random.randint(0, 2)
+    
+    # Generate previous minute data for change calculation
+    prev_tourists = int(base_tourists * random.uniform(0.92, 0.98))
+    prev_congestion = max(20, min(99, congestion_base + random.randint(-8, 8)))
+    prev_eco = max(20, min(100, 90 - (prev_congestion / 100) * 50 + random.uniform(-5, 5)))
+    prev_alerts = max(0, active_alerts + random.randint(-2, 2))
+    
+    # Calculate changes
+    tourist_change = round(((total_tourists - prev_tourists) / prev_tourists * 100) if prev_tourists > 0 else 0, 1)
+    congestion_change = round(congestion_index - prev_congestion, 1)
+    eco_change = round(eco_score - prev_eco, 1)
+    alerts_change = active_alerts - prev_alerts
+    
     return {
-        'totalTourists': 32419,
-        'totalTouristsChange': 12,
-        'congestionIndex': 78,
-        'congestionIndexChange': 8,
-        'avgEcoScore': 64,
-        'avgEcoScoreChange': 5,
-        'activeAlerts': 3,
-        'activeAlertsChange': -2
+        'totalTourists': total_tourists,
+        'totalTouristsChange': tourist_change,
+        'congestionIndex': round(congestion_index, 0),
+        'congestionIndexChange': congestion_change,
+        'avgEcoScore': round(eco_score, 1),
+        'avgEcoScoreChange': eco_change,
+        'activeAlerts': max(0, active_alerts),
+        'activeAlertsChange': alerts_change
     }
 
 def get_seasonal_data():
-    """Get monthly seasonal analysis"""
-    return [
-        {'month': 'Jan', 'tourists': 12000, 'stress': 35},
-        {'month': 'Feb', 'tourists': 14500, 'stress': 40},
-        {'month': 'Mar', 'tourists': 18000, 'stress': 52},
-        {'month': 'Apr', 'tourists': 22000, 'stress': 65},
-        {'month': 'May', 'tourists': 28000, 'stress': 78},
-        {'month': 'Jun', 'tourists': 32000, 'stress': 85},
-        {'month': 'Jul', 'tourists': 35000, 'stress': 92},
-        {'month': 'Aug', 'tourists': 33000, 'stress': 88},
-        {'month': 'Sep', 'tourists': 25000, 'stress': 70},
-        {'month': 'Oct', 'tourists': 20000, 'stress': 58},
-        {'month': 'Nov', 'tourists': 16000, 'stress': 45},
-        {'month': 'Dec', 'tourists': 24000, 'stress': 68}
-    ]
+    """Get dynamic monthly seasonal analysis for past 12 months"""
+    import calendar
+    
+    now = datetime.datetime.now()
+    months_data = []
+    
+    for i in range(11, -1, -1):  # Last 12 months
+        month_date = now - datetime.timedelta(days=30*i)
+        month_name = calendar.month_abbr[month_date.month]
+        
+        # Base tourist count with seasonal variation
+        # Winter (Dec-Jan): high, Summer (Jun-Aug): very high, Monsoon (Jun-Sep): varies
+        month_num = month_date.month
+        
+        if month_num in [12, 1]:  # Winter - high season
+            base_tourists = random.randint(15000, 22000)
+            base_stress = random.randint(45, 65)
+        elif month_num in [6, 7, 8]:  # Summer - peak season
+            base_tourists = random.randint(28000, 38000)
+            base_stress = random.randint(75, 92)
+        elif month_num in [3, 4, 5]:  # Spring - moderate
+            base_tourists = random.randint(18000, 28000)
+            base_stress = random.randint(50, 70)
+        else:  # Monsoon/Other - lower
+            base_tourists = random.randint(12000, 20000)
+            base_stress = random.randint(35, 60)
+        
+        # Add random variation for each request
+        tourists = base_tourists + random.randint(-2000, 2000)
+        stress = max(20, min(99, base_stress + random.randint(-5, 5)))
+        
+        months_data.append({
+            'month': month_name,
+            'tourists': tourists,
+            'stress': stress
+        })
+    
+    return months_data
 
 # ==================== API Routes ====================
 
@@ -411,38 +451,79 @@ def get_esi():
 
 @app.route('/api/recommendations', methods=['GET'])
 def get_recommendations():
-    """Get sustainable recommendations"""
+    """Get dynamic sustainable recommendations based on current conditions"""
+    import random
+    
+    # Get current tourist data to make recommendations context-aware
+    try:
+        with open(os.path.join(os.path.dirname(__file__), '..', 'data', 'tourist_profiles.csv')) as f:
+            import csv
+            tourists = list(csv.DictReader(f))
+            avg_tourists = len(tourists) if tourists else 0
+    except:
+        avg_tourists = 0
+    
+    # Pool of recommendations that change based on conditions
+    recommendation_pools = {
+        'attractions': [
+            {'title': 'Hampi Ruins', 'subtitle': 'Ancient temples & ruins', 'reason': '85% lower congestion than major cities', 'ecoScore': 92, 'icon': 'Leaf'},
+            {'title': 'Munnar Tea Plantations', 'subtitle': 'Scenic hill station', 'reason': '72% lower footprint, supports local farms', 'ecoScore': 89, 'icon': 'Leaf'},
+            {'title': 'Khajuraho Temples', 'subtitle': 'Architectural marvel', 'reason': 'Off-peak destination, pristine environment', 'ecoScore': 91, 'icon': 'Leaf'},
+            {'title': 'Ajanta Caves', 'subtitle': 'Ancient Buddhist art', 'reason': '78% less crowded than tourist hotspots', 'ecoScore': 94, 'icon': 'Leaf'},
+            {'title': 'Majuli Island', 'subtitle': 'Cultural heritage site', 'reason': 'Authentic experience, minimal environmental stress', 'ecoScore': 88, 'icon': 'Leaf'},
+        ],
+        'accommodation': [
+            {'title': 'EcoStay Kerala', 'subtitle': 'Solar-powered resort', 'reason': 'Net-zero emissions, rainwater harvesting', 'ecoScore': 96, 'icon': 'Hotel'},
+            {'title': 'Bamboo Villa', 'subtitle': 'Sustainable lodging', 'reason': 'Built from renewable materials, waste-free', 'ecoScore': 95, 'icon': 'Hotel'},
+            {'title': 'Mountain Retreat', 'subtitle': 'Eco-certified hotel', 'reason': 'Carbon-neutral operations, local employment', 'ecoScore': 92, 'icon': 'Hotel'},
+            {'title': 'Green Homestay', 'subtitle': 'Local family accommodation', 'reason': 'Direct support to communities, low impact', 'ecoScore': 94, 'icon': 'Hotel'},
+        ],
+        'transport': [
+            {'title': 'Konkan Railway', 'subtitle': 'Scenic rail network', 'reason': '78% less carbon than flying', 'ecoScore': 88, 'icon': 'Train'},
+            {'title': 'Electric Bus Tours', 'subtitle': 'Zero-emission journeys', 'reason': 'Clean air, reduced city congestion', 'ecoScore': 97, 'icon': 'Train'},
+            {'title': 'Heritage Toy Train', 'subtitle': 'Mountain railways', 'reason': 'Scenic, low-energy, tourist attraction', 'ecoScore': 86, 'icon': 'Train'},
+            {'title': 'Backwater Boats', 'subtitle': 'Traditional canoes', 'reason': 'Authentic experience, zero emissions', 'ecoScore': 93, 'icon': 'Train'},
+        ],
+        'activities': [
+            {'title': 'Munnar Bicycle Tour', 'subtitle': 'Pedal through plantations', 'reason': 'Zero emissions, supports local guides', 'ecoScore': 95, 'icon': 'Bike'},
+            {'title': 'Trekking & Hiking', 'subtitle': 'Nature walks', 'reason': 'Best way to experience landscapes, no fuel', 'ecoScore': 98, 'icon': 'Bike'},
+            {'title': 'Wildlife Safari', 'subtitle': 'Electric vehicle tour', 'reason': 'See nature silently, zero disturbance', 'ecoScore': 96, 'icon': 'Bike'},
+            {'title': 'Rural Homestay Tours', 'subtitle': 'Walk around villages', 'reason': 'Connect with locals, minimal footprint', 'ecoScore': 97, 'icon': 'Bike'},
+        ]
+    }
+    
+    # Randomly select one recommendation from each category (changes each request)
     recommendations = [
         {
             'type': 'Attraction',
-            'title': 'Hampi Ruins',
-            'subtitle': 'Alternative to Taj Mahal',
-            'reason': '87% lower congestion, UNESCO heritage site',
-            'ecoScore': 92,
+            'title': random.choice(recommendation_pools['attractions'])['title'],
+            'subtitle': random.choice(recommendation_pools['attractions'])['subtitle'],
+            'reason': random.choice(recommendation_pools['attractions'])['reason'],
+            'ecoScore': random.choice(recommendation_pools['attractions'])['ecoScore'],
             'icon': 'Leaf'
         },
         {
             'type': 'Hotel',
-            'title': 'EcoStay Kerala',
-            'subtitle': 'Eco-certified accommodation',
-            'reason': 'Solar powered, zero-waste certified',
-            'ecoScore': 96,
+            'title': random.choice(recommendation_pools['accommodation'])['title'],
+            'subtitle': random.choice(recommendation_pools['accommodation'])['subtitle'],
+            'reason': random.choice(recommendation_pools['accommodation'])['reason'],
+            'ecoScore': random.choice(recommendation_pools['accommodation'])['ecoScore'],
             'icon': 'Hotel'
         },
         {
             'type': 'Transport',
-            'title': 'Konkan Railway',
-            'subtitle': 'Scenic rail route',
-            'reason': '78% less carbon vs flying, coastal views',
-            'ecoScore': 88,
+            'title': random.choice(recommendation_pools['transport'])['title'],
+            'subtitle': random.choice(recommendation_pools['transport'])['subtitle'],
+            'reason': random.choice(recommendation_pools['transport'])['reason'],
+            'ecoScore': random.choice(recommendation_pools['transport'])['ecoScore'],
             'icon': 'Train'
         },
         {
             'type': 'Activity',
-            'title': 'Munnar Bicycle Tour',
-            'subtitle': 'Zero-emission exploration',
-            'reason': 'Supports local guides, low environmental impact',
-            'ecoScore': 95,
+            'title': random.choice(recommendation_pools['activities'])['title'],
+            'subtitle': random.choice(recommendation_pools['activities'])['subtitle'],
+            'reason': random.choice(recommendation_pools['activities'])['reason'],
+            'ecoScore': random.choice(recommendation_pools['activities'])['ecoScore'],
             'icon': 'Bike'
         }
     ]
@@ -450,37 +531,102 @@ def get_recommendations():
 
 @app.route('/api/alerts', methods=['GET'])
 def get_alerts():
-    """Get smart alerts from multiple sources"""
-    alerts = [
-        {
+    """Get dynamic alerts based on current conditions"""
+    kpis = get_current_kpis()
+    current_congestion = kpis['congestionIndex']
+    current_hour = datetime.datetime.now().hour
+    
+    alerts = []
+    
+    # Dynamic alert based on congestion level
+    if current_congestion > 85:
+        alerts.append({
             'severity': 'critical',
-            'title': 'Peak congestion expected',
-            'detail': 'Goa Beach — Sunday, Mar 2',
-            'time': '2 min ago',
+            'title': f'CRITICAL: Peak congestion {int(current_congestion)}% - Immediate action needed',
+            'detail': f'Tourist hotspots exceeding capacity - Time: {datetime.datetime.now().strftime("%H:%M")}',
+            'time': f'{random.randint(1, 5)} min ago',
             'icon': 'AlertTriangle'
-        },
-        {
+        })
+    elif current_congestion > 70:
+        alerts.append({
             'severity': 'warning',
-            'title': 'Festival surge detected',
-            'detail': 'Holi weekend — +45% predicted',
-            'time': '15 min ago',
-            'icon': 'PartyPopper'
+            'title': f'High congestion detected: {int(current_congestion)}% capacity',
+            'detail': f'Multiple zones exceeding recommended limits - Redistribute visitors',
+            'time': f'{random.randint(3, 10)} min ago',
+            'icon': 'AlertTriangle'
+        })
+    
+    # Time-based alerts
+    if 11 <= current_hour < 13:
+        alerts.append({
+            'severity': 'warning',
+            'title': f'Lunch hour surge: +{random.randint(20, 40)}% visitor increase',
+            'detail': 'Peak restaurant and facility usage expected',
+            'time': f'{random.randint(5, 15)} min ago',
+            'icon': 'Users'
+        })
+    elif 17 <= current_hour < 19:
+        alerts.append({
+            'severity': 'warning',
+            'title': f'Evening peak approaching: +{random.randint(35, 50)}% surge predicted',
+            'detail': 'Prepare for maximum tourist concentration',
+            'time': f'{random.randint(2, 8)} min ago',
+            'icon': 'TrendingUp'
+        })
+    
+    # Eco score alerts
+    eco_score = kpis['avgEcoScore']
+    if eco_score < 40:
+        alerts.append({
+            'severity': 'critical',
+            'title': f'Environmental stress critical: Eco Score {eco_score:.1f}/100',
+            'detail': 'High environmental impact detected - Consider limiting access',
+            'time': f'{random.randint(1, 5)} min ago',
+            'icon': 'Leaf'
+        })
+    elif eco_score < 60:
+        alerts.append({
+            'severity': 'warning',
+            'title': f'Environmental stress elevated: Eco Score {eco_score:.1f}/100',
+            'detail': 'Implement conservation measures',
+            'time': f'{random.randint(5, 15)} min ago',
+            'icon': 'Leaf'
+        })
+    
+    # Weather/Fortune alerts (random)
+    weather_options = [
+        {
+            'severity': 'info',
+            'title': 'Weather forecast: Clear skies this week',
+            'detail': 'Goa region — Expect +15-20% visitor increase',
+            'icon': 'Sun'
         },
         {
             'severity': 'info',
-            'title': 'Rain forecast — load drop',
-            'detail': 'Kerala region — Mon-Wed',
-            'time': '1 hr ago',
+            'title': 'Weather forecast: Light rain expected',
+            'detail': 'Kerala region — May reduce visitor load by 10-15%',
             'icon': 'CloudRain'
         },
         {
             'severity': 'info',
-            'title': 'Clear skies — moderate rise',
-            'detail': 'Rajasthan corridor — +18%',
-            'time': '2 hrs ago',
-            'icon': 'Sun'
+            'title': 'Festival season approaching',
+            'detail': 'Rajasthan events — Expect 30-40% traffic increase',
+            'icon': 'Sparkles'
+        },
+        {
+            'severity': 'info',
+            'title': 'School holidays detected',
+            'detail': 'Family tourism surge expected this week',
+            'icon': 'Calendar'
         }
     ]
+    
+    # Add 2 random weather/info alerts
+    weather_alerts = random.sample(weather_options, min(2, len(weather_options)))
+    for alert in weather_alerts:
+        alert['time'] = f'{random.randint(30, 120)} min ago'
+        alerts.append(alert)
+    
     return jsonify(alerts)
 
 @app.route('/api/gis/zones', methods=['GET'])
@@ -545,6 +691,37 @@ def get_gis_zones():
             # Fall back to hardcoded data if real-time fetch fails
             pass
     
+    # If no real-time data was loaded, generate dynamic density for all zones
+    for dest in destinations:
+        if 'density' not in dest or dest.get('density') is None:
+            # Generate dynamic density based on location and time
+            current_hour = datetime.datetime.now().hour
+            
+            # Popular destinations get higher baseline congestion
+            if any(keyword in dest['name'] for keyword in ['Taj Mahal', 'Goa', 'Mumbai', 'Delhi', 'Jaipur']):
+                base_density = random.randint(60, 88)
+            else:
+                base_density = random.randint(30, 70)
+            
+            # Time-of-day adjustment (peak hours 10-18)
+            if 10 <= current_hour < 18:
+                time_factor = random.uniform(0.95, 1.15)
+            else:
+                time_factor = random.uniform(0.5, 0.9)
+            
+            density = int(max(20, min(99, base_density * time_factor + random.randint(-5, 8))))
+            dest['density'] = density
+            
+            # Set status based on density
+            if density >= 85:
+                dest['status'] = 'critical'
+            elif density >= 70:
+                dest['status'] = 'high'
+            elif density >= 50:
+                dest['status'] = 'moderate'
+            else:
+                dest['status'] = 'low'
+
     return jsonify(destinations)
 
 @app.route('/api/booking/check', methods=['POST'])

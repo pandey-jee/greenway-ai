@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from "@tanstack/react-query";
-import { Users, TrendingUp, Leaf, AlertTriangle } from "lucide-react";
+import { Users, TrendingUp, Leaf, AlertTriangle, RefreshCw } from "lucide-react";
+import { useLastUpdated } from "@/hooks/useLastUpdated";
 import KPICard from "@/components/KPICard";
 import { CongestionChart, SeasonalChart } from "@/components/Charts";
 import InteractiveMap from "@/components/InteractiveMap";
@@ -56,12 +57,16 @@ const Dashboard = () => {
   const { data: recommendations } = useQuery({
     queryKey: ['recommendations'],
     queryFn: apiService.getRecommendations,
+    refetchInterval: 30000, // Refresh every 30 seconds for fresh recommendations
   });
 
   const { data: alerts } = useQuery({
     queryKey: ['alerts'],
     queryFn: apiService.getAlerts,
   });
+
+  // Track when data was last updated (after queries are defined)
+  const { displayTime, lastUpdated } = useLastUpdated([kpisLoading]);
 
   // Build KPI cards from API data
   const kpis = kpisData ? [
@@ -102,7 +107,13 @@ const Dashboard = () => {
         <div className="mb-6 flex items-center justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Policy Dashboard</h1>
-            <p className="text-muted-foreground text-sm mt-1">AI-powered insights for sustainable tourism planning</p>
+            <div className="flex items-center gap-4 mt-2">
+              <p className="text-muted-foreground text-sm">AI-powered insights for sustainable tourism planning</p>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 px-3 py-1 rounded-full">
+                <RefreshCw className="w-3 h-3" />
+                <span>Last updated: {displayTime}</span>
+              </div>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <CountrySelector 
@@ -153,7 +164,7 @@ const Dashboard = () => {
 
         {/* Bottom Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <InteractiveMap data={gisZones} loading={gisLoading} />
+          <InteractiveMap data={gisZones} loading={gisLoading} enableFilters={true} />
           <RecommendationsPanel data={recommendations} />
         </div>
       </main>
