@@ -202,7 +202,7 @@ class XGBoostCongestionPredictor:
             temp_data = self.create_features(temp_data)
             
             # Get features for prediction
-            X_pred = temp_data[feature_cols].iloc[-1:].fillna(method='ffill').fillna(0)
+            X_pred = temp_data[feature_cols].iloc[-1:].ffill().fillna(0)
             
             # Predict
             pred_value = model.predict(X_pred)[0]

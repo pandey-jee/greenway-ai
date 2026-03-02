@@ -285,7 +285,15 @@ def get_realtime_data_with_fallback() -> pd.DataFrame:
 
 def _get_synthetic_fallback_data() -> pd.DataFrame:
     """Synthetic data fallback when APIs are not configured"""
-    from backend.utils.data_generator import generate_tourist_data
-    
-    logger.info("Using synthetic data generator as fallback...")
-    return generate_tourist_data(days=365)
+    try:
+        from utils.data_generator import generate_tourist_data
+        logger.info("Using synthetic data generator as fallback...")
+        return generate_tourist_data(days=365)
+    except ImportError:
+        try:
+            from backend.utils.data_generator import generate_tourist_data
+            logger.info("Using synthetic data generator as fallback...")
+            return generate_tourist_data(days=365)
+        except ImportError:
+            logger.warning("Data generator not available, returning empty DataFrame")
+            return pd.DataFrame()
