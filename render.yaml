@@ -3,13 +3,10 @@ services:
     name: greenway-ai-backend
     root: ./backend
     runtime: python
-    pythonVersion: 3.9
+    pythonVersion: 3.11
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "python api/app.py"
+    startCommand: "gunicorn api.app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
     envVars:
-      - key: FLASK_ENV
-        scope: build
-        value: production
       - key: FLASK_ENV
         scope: runtime
         value: production
